@@ -10,6 +10,11 @@ namespace EthernetIP_Fanuc
     {
         static void Main(string[] args)
         {
+            Host host = new Host();
+            host.Execute();
+            Console.WriteLine("Press any key to contunue...");
+            Console.ReadKey();
+            host = null;
         }
     }
 }
