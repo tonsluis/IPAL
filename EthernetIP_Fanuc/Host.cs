@@ -40,18 +40,16 @@ namespace EthernetIP_Fanuc
             {
                 _client.RegisterSession();
 
-                ReadWriteToIntegerRegister();
+                //ReadWriteToIntegerRegister();
+                //ReadWriteStringRegister();
+                ReadWritePositionRegister();
 
-                ReadWriteStringRegister();
-
+                _client.UnRegisterSession();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"{ex.Message}");
             }
-
-            _client.UnRegisterSession();
-
         }
 
         public void Execute()
@@ -60,18 +58,68 @@ namespace EthernetIP_Fanuc
         }
 
 
-        private void ReadWriteStringRegister()
+        /// <summary>
+        /// Read Position register according  Table 7-22
+        /// </summary>
+        private void ReadWritePositionRegister()
         {
-            // Write a string.
-            _client.SetAttributeSingle(CLASS_REGISTER_STRING, 1, 1, Encoding.ASCII.GetBytes("Whohoo!!") );
+
+            byte[] xPosBytes = new byte[4];
 
 
-            byte[] response = _client.GetAttributeSingle(CLASS_REGISTER_STRING, 1, 1);
-            string asString = Encoding.ASCII.GetString(response);
+
+
+            byte[] response = _client.GetAttributeSingle(0x7c, 1, 1);
+
+            Array.Copy(response, 4, xPosBytes, 0, 4);
+
+            Array.Reverse(xPosBytes);
+
+            float posX = BitConverter.ToSingle  (xPosBytes,0);
+
+
+
+
+
 
         }
 
 
+
+
+
+
+        /// <summary>
+        /// Read / Write a string to the string registers.
+        /// </summary>
+        /// <remarks>
+        /// See figure 7-12
+        /// </remarks>
+        private void ReadWriteStringRegister()
+        {
+            string writeSting = "Whohoo hihaa";
+            byte[] writeReg = new byte[88];
+
+            // Copy the string
+            Array.Copy(Encoding.ASCII.GetBytes(writeSting), 0, writeReg, 4, writeSting.Length);
+            // Add the length
+            Array.Copy(BitConverter.GetBytes(writeSting.Length), writeReg, 4);
+            // Write a string.
+            _client.SetAttributeSingle(CLASS_REGISTER_STRING, 1, 1, writeReg);
+
+            // Read the string.
+            byte[] responseStruct = _client.GetAttributeSingle(CLASS_REGISTER_STRING, 1, 1);
+            if (responseStruct.GetUpperBound(0) >4)
+            {
+                int responceLength = BitConverter.ToInt32(responseStruct.Chunk(0, 4),0);
+                string responce = Encoding.UTF8.GetString(responseStruct,4 , responceLength );
+            }
+        }
+
+
+        /// <summary>
+        /// Read / Write integer values to the Integer registers.
+        /// </summary>
         private void ReadWriteToIntegerRegister()
         {
             // Reads 4 bytes integers (byte[0] = LSB)
